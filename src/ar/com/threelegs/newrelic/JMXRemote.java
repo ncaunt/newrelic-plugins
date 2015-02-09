@@ -58,7 +58,7 @@ public class JMXRemote extends Agent {
 									// Using <Metric> with different assignments for the 2 strings in it.
 									List<Metric> resultValues = JMXHelper.queryAndGetAttributes(connection, thisObjectName, thisMetric.getStringList("attributes"));
 									for (Metric thisValue : resultValues) {
-										String metricName = metricPrefix + "/" + thisValue.name.replaceAll(":", "/").replaceAll(",", "/") + "/" + thisValue.valueType;
+										String metricName = metricPrefix + "/" + thisValue.name.replaceAll("\"", "").replaceAll(":", "/").replaceAll(",", "/") + "/" + thisValue.valueType;
 										// Adding actual metric in proper form to metric list.
 										metrics.add(new Metric(metricName, thisMetricType, thisValue.value));
 									}
