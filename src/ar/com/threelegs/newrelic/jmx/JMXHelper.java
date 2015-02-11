@@ -3,6 +3,7 @@ package ar.com.threelegs.newrelic.jmx;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -12,6 +13,7 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+import javax.management.openmbean.CompositeData;
 
 import ar.com.threelegs.newrelic.Metric;
 
@@ -82,11 +84,21 @@ public class JMXHelper {
 		if (instances != null && instances.size() > 0) {
 			for (ObjectInstance thisInstance : instances) {
 				for (String thisAttribute : attributes) {
-					try {
-						returnList.add(new Metric(thisInstance.getObjectName().toString(), thisAttribute, (Number)getAttribute(connection, thisInstance.getObjectName(), thisAttribute)));
-					} catch (Exception e) {
-						// Not a number, won't add metric, but won't crash the dang thing
-						LOGGER.error(e, "failed object: " + thisInstance.getObjectName().toString(), "failed attribute: " + thisAttribute);
+					Object attr = getAttribute(connection, thisInstance.getObjectName(), thisAttribute);
+					if (attr instanceof CompositeData) {
+						LOGGER.debug("composite: '" + thisInstance.getObjectName().toString() + "' attribute '" + thisAttribute + "'");
+						for (Iterator i = ((CompositeData)attr).getCompositeType().keySet().iterator(); i.hasNext();) {
+							String key = (String)i.next();
+							Object o = ((CompositeData)attr).get(key);
+							returnList.add(new Metric(thisInstance.getObjectName().toString(), thisAttribute + "/" + key, (Number)o));
+						}
+					} else {
+						try {
+							returnList.add(new Metric(thisInstance.getObjectName().toString(), thisAttribute, (Number)attr));
+						} catch (Exception e) {
+							// Not a number, won't add metric, but won't crash the dang thing
+							LOGGER.error(e, "failed object: " + thisInstance.getObjectName().toString(), "failed attribute: " + thisAttribute);
+						}
 					}
 				}
 			}
